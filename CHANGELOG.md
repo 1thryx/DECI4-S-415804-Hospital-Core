@@ -2,6 +2,12 @@
 
 All notable changes are documented here. This file is generated automatically by semantic-release from Conventional Commit messages — do not edit it by hand.
 
+## [1.1.1](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.1.0...v1.1.1) (2026-07-22)
+
+### Bug Fixes
+
+* **deploy:** move netlify.toml to repository root ([4b9c70c](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/4b9c70c52ddcdd25a784236f911f06570a5000cf))
+
 ## [1.1.0](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.0.2...v1.1.0) (2026-07-22)
 
 ### Features
