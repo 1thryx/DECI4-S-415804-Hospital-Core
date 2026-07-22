@@ -1,0 +1,15 @@
+# Development image: Vite dev server with HMR. Source arrives via a bind mount
+# from docker-compose, so edits on the host hot-reload inside the container.
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+ENV NODE_ENV=development
+EXPOSE 5173
+
+# --host binds 0.0.0.0 so the dev server is reachable from outside the container.
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

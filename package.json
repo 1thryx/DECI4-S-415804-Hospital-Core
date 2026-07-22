@@ -1,0 +1,31 @@
+{
+  "name": "hospital-core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloud-native healthcare management platform — React SPA, Node/Express API, appointment microservice, Docker & Kubernetes",
+  "scripts": {
+    "install:all": "npm --prefix ./backend install && npm --prefix ./frontend install && npm --prefix ./services/appointment-service install",
+    "dev:backend": "npm --prefix ./backend run dev",
+    "dev:frontend": "npm --prefix ./frontend run dev",
+    "dev:appointments": "npm --prefix ./services/appointment-service run dev",
+    "seed": "npm --prefix ./backend run seed",
+    "test": "npm --prefix ./backend test && npm --prefix ./services/appointment-service test && npm --prefix ./frontend test",
+    "test:backend": "npm --prefix ./backend test",
+    "test:frontend": "npm --prefix ./frontend test",
+    "test:appointments": "npm --prefix ./services/appointment-service test",
+    "build": "npm --prefix ./frontend run build",
+    "lighthouse": "npm --prefix ./frontend run build && npx @lhci/cli autorun --config=./lighthouserc.js",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down -v",
+    "docker:seed": "docker compose run --rm seed",
+    "k8s:deploy": "bash infra/scripts/deploy-minikube.sh",
+    "k8s:verify": "bash infra/scripts/verify-cluster.sh",
+    "k8s:load-test": "bash infra/scripts/load-test.sh",
+    "k8s:down": "kubectl delete namespace hospital"
+  },
+  "keywords": ["healthcare", "kubernetes", "docker", "react", "express", "mongodb", "microservices"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

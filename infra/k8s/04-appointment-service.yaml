@@ -1,0 +1,94 @@
+# The booking microservice scales on its own curve — appointment traffic spikes at
+# clinic-opening hours independently of general API load, which is the whole point
+# of having decoupled it from the core.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appointment-service
+  namespace: hospital
+  labels:
+    app: appointment-service
+    tier: application
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: appointment-service
+  template:
+    metadata:
+      labels:
+        app: appointment-service
+        tier: application
+    spec:
+      containers:
+        - name: appointment-service
+          image: hospital-core/appointment-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5001
+              name: http
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: hospital-db-secret
+                  key: MONGO_URI
+            - name: CORE_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: hospital-config
+                  key: CORE_API_URL
+          resources:
+            requests:
+              memory: '128Mi'
+              cpu: '100m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appointment-service
+  namespace: hospital
+spec:
+  type: ClusterIP
+  selector:
+    app: appointment-service
+  ports:
+    - port: 5001
+      targetPort: 5001
+      name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: appointment-service-hpa
+  namespace: hospital
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: appointment-service
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65

@@ -1,0 +1,250 @@
+{
+  "info": {
+    "name": "Hospital Core API",
+    "description": "Integration test collection for the Hospital Core platform.\n\nRun the whole folder in order with the Collection Runner (or `newman run postman_collection.json`) — requests share variables, so the E2E folder registers a patient, books an appointment, and asserts the dashboard reacts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "patientId", "value": "" },
+    { "key": "doctorId", "value": "" },
+    { "key": "appointmentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('database is connected', () => pm.expect(pm.response.json().database).to.eql('connected'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "E2E clinical workflow",
+      "item": [
+        {
+          "name": "1. Register doctor",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/doctors",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Laila\",\n  \"lastName\": \"Hassan\",\n  \"specialty\": \"General Medicine\",\n  \"licenseNumber\": \"LIC-GEN-{{$randomInt}}\",\n  \"email\": \"l.hassan@hospital.local\",\n  \"roomNumber\": \"G-101\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('doctorId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Register patient",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/patients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Ziad\",\n  \"lastName\": \"Hafez\",\n  \"dateOfBirth\": \"1991-09-17\",\n  \"gender\": \"male\",\n  \"email\": \"ziad.hafez@example.com\",\n  \"phone\": \"+20 100 666 7788\",\n  \"bloodType\": \"A-\",\n  \"allergies\": [\"iodine\"]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('MRN auto-generated', () => pm.expect(pm.response.json().data.mrn).to.match(/^MRN-/));",
+                  "pm.collectionVariables.set('patientId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Book appointment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/appointments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient\": \"{{patientId}}\",\n  \"doctor\": \"{{doctorId}}\",\n  \"scheduledFor\": \"{{$isoTimestamp}}\",\n  \"durationMinutes\": 30,\n  \"reason\": \"New patient intake and blood pressure review\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('status is scheduled', () => pm.expect(pm.response.json().data.status).to.eql('scheduled'));",
+                  "pm.collectionVariables.set('appointmentId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Reject double booking",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/appointments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient\": \"{{patientId}}\",\n  \"doctor\": \"{{doctorId}}\",\n  \"scheduledFor\": \"{{$isoTimestamp}}\",\n  \"reason\": \"Clashing booking\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('409 Conflict on a taken slot', () => pm.response.to.have.status(409));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Check in",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/appointments/{{appointmentId}}/status",
+            "body": { "mode": "raw", "raw": "{ \"status\": \"checked-in\" }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+            }
+          ]
+        },
+        {
+          "name": "6. File diagnosis",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/patients/{{patientId}}/history",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"diagnosis\",\n  \"title\": \"Essential hypertension\",\n  \"icd10Code\": \"I10\",\n  \"description\": \"BP 148/94 on repeat measurement.\",\n  \"doctor\": \"{{doctorId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));"] }
+            }
+          ]
+        },
+        {
+          "name": "7. Dashboard reflects the visit",
+          "request": { "method": "GET", "url": "{{baseUrl}}/stats/dashboard" },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('counts at least one patient', () => pm.expect(d.totalPatients).to.be.above(0));",
+                  "pm.test('counts at least one appointment today', () => pm.expect(d.appointmentsToday).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        { "name": "GET /patients", "request": { "method": "GET", "url": "{{baseUrl}}/patients?page=1&limit=25" } },
+        { "name": "GET /patients (search)", "request": { "method": "GET", "url": "{{baseUrl}}/patients?search=Hafez" } },
+        { "name": "GET /patients/:id", "request": { "method": "GET", "url": "{{baseUrl}}/patients/{{patientId}}" } },
+        {
+          "name": "PUT /patients/:id",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/patients/{{patientId}}",
+            "body": { "mode": "raw", "raw": "{ \"phone\": \"+20 100 000 1111\" }" }
+          }
+        },
+        { "name": "GET /patients/:id/history", "request": { "method": "GET", "url": "{{baseUrl}}/patients/{{patientId}}/history" } },
+        {
+          "name": "DELETE /patients/:id (archive)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/patients/{{patientId}}" }
+        },
+        {
+          "name": "POST /patients — validation failure",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/patients",
+            "body": { "mode": "raw", "raw": "{ \"email\": \"not-an-email\" }" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('422 Unprocessable', () => pm.response.to.have.status(422));"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Doctors",
+      "item": [
+        { "name": "GET /doctors", "request": { "method": "GET", "url": "{{baseUrl}}/doctors" } },
+        { "name": "GET /doctors (by specialty)", "request": { "method": "GET", "url": "{{baseUrl}}/doctors?specialty=Cardiology" } },
+        { "name": "GET /doctors/:id/schedule", "request": { "method": "GET", "url": "{{baseUrl}}/doctors/{{doctorId}}/schedule" } }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        { "name": "GET /appointments", "request": { "method": "GET", "url": "{{baseUrl}}/appointments" } },
+        { "name": "GET /appointments (filtered)", "request": { "method": "GET", "url": "{{baseUrl}}/appointments?status=scheduled" } },
+        {
+          "name": "PUT /appointments/:id (reschedule)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/appointments/{{appointmentId}}",
+            "body": { "mode": "raw", "raw": "{ \"scheduledFor\": \"2030-06-01T10:30:00.000Z\", \"reason\": \"Rescheduled review\" }" }
+          }
+        },
+        { "name": "DELETE /appointments/:id (cancel)", "request": { "method": "DELETE", "url": "{{baseUrl}}/appointments/{{appointmentId}}" } }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        { "name": "GET /stats/dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/stats/dashboard" } },
+        { "name": "GET /stats/patient-flow", "request": { "method": "GET", "url": "{{baseUrl}}/stats/patient-flow?days=7" } }
+      ]
+    }
+  ]
+}

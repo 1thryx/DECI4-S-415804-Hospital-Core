@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+.vite/
+
+# Environment — never commit real credentials
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Test & audit output
+coverage/
+.lighthouseci/
+lighthouse-report.*
+
+# Local TLS material (regenerate with infra/scripts/generate-certs.sh)
+infra/certs/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Machine-local tool settings
+.claude/settings.local.json
+
+# Runtime
+*.pid
+mongo-data/

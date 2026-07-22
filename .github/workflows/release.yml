@@ -1,0 +1,50 @@
+name: Release — Semantic Versioning & Changelog
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the version bump, tag, and CHANGELOG commit
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Semantic release
+    runs-on: ubuntu-latest
+    # Never release a broken build: this waits for CI on the same commit.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # semantic-release reads the full tag history
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify the backend suite before releasing
+        working-directory: backend
+        run: npm ci && npm run test:ci
+
+      - name: Verify the frontend suite before releasing
+        working-directory: frontend
+        run: npm ci && npm run test:ci
+
+      - name: Install semantic-release
+        run: |
+          npm install -g \
+            semantic-release@24 \
+            @semantic-release/changelog@6 \
+            @semantic-release/git@10 \
+            @semantic-release/exec@6 \
+            conventional-changelog-conventionalcommits@8
+
+      - name: Run semantic-release
+        # Reads Conventional Commit messages since the last tag and decides the
+        # bump: fix -> patch, feat -> minor, BREAKING CHANGE -> major.
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

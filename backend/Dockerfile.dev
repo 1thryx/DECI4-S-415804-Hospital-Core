@@ -1,0 +1,14 @@
+# Development image. Dependencies live in the image; source is bind-mounted by
+# docker-compose so nodemon restarts on host edits without a rebuild.
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+ENV NODE_ENV=development
+EXPOSE 5000
+
+CMD ["npx", "nodemon", "--legacy-watch", "server.js"]

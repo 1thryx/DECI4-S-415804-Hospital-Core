@@ -1,0 +1,44 @@
+# Single entry point for the cluster.
+#
+#   https://hospital.local/      -> frontend-service  (React SPA)
+#   https://hospital.local/api   -> backend-service   (core API)
+#
+# TLS terminates here at the edge, using the mock certificate stored in the
+# hospital-tls Secret (created by infra/scripts/generate-certs.sh).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hospital-ingress
+  namespace: hospital
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: '2m'
+    # Long-lived read connections for the dashboard's background polling.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/enable-cors: 'true'
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - hospital.local
+      secretName: hospital-tls
+  rules:
+    - host: hospital.local
+      http:
+        paths:
+          # Most specific path first — /api must not be swallowed by the SPA rule.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 5000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80

@@ -1,0 +1,215 @@
+name: CI — Test, Audit & Build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  # A new push supersedes an in-flight run for the same ref.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ---------------------------------------------------------------- backend --
+  backend-tests:
+    name: Backend — unit, integration & E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run test suite
+        working-directory: backend
+        # mongodb-memory-server downloads a mongod binary and runs it in-process,
+        # so no service container is needed for the integration and E2E tests.
+        run: npm run test:ci
+        env:
+          NODE_ENV: test
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # -------------------------------------------------- appointment service ----
+  appointment-service-tests:
+    name: Appointment microservice — booking rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: services/appointment-service/package-lock.json
+
+      - name: Install dependencies
+        working-directory: services/appointment-service
+        run: npm ci
+
+      - name: Run test suite
+        working-directory: services/appointment-service
+        run: npm test
+        env:
+          NODE_ENV: test
+
+  # --------------------------------------------------------------- frontend --
+  frontend-tests:
+    name: Frontend — Jest component tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run component tests
+        working-directory: frontend
+        run: npm run test:ci
+
+      - name: Build production bundle
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+
+  # ------------------------------------------------------------- lighthouse --
+  lighthouse:
+    name: Lighthouse CI — performance, a11y & best practices
+    runs-on: ubuntu-latest
+    needs: frontend-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        # lhci starts `npm run preview`, audits the built bundle, prints every
+        # category score to the log, and exits non-zero if a threshold in
+        # lighthouserc.js is missed — that failure fails this job.
+        run: |
+          npm install -g @lhci/cli@0.14.x
+          lhci autorun --config=./lighthouserc.js
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ----------------------------------------------------------- docker build --
+  docker-build:
+    name: Docker — verify all images build
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, appointment-service-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          tags: hospital-core/backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build appointment-service image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/appointment-service
+          push: false
+          tags: hospital-core/appointment-service:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          tags: hospital-core/frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------- k8s lint ----
+  manifest-validation:
+    name: Kubernetes — validate manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate manifests against the k8s schema
+        run: kubeconform -strict -summary -ignore-missing-schemas infra/k8s/
+
+  # ------------------------------------------------------------ status gate --
+  ci-status:
+    name: CI status
+    runs-on: ubuntu-latest
+    needs: [backend-tests, appointment-service-tests, frontend-tests, lighthouse, docker-build, manifest-validation]
+    if: always()
+    steps:
+      - name: Fail if any job failed
+        # Single required check for branch protection — a PR cannot merge unless
+        # every upstream job is green.
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "::error::One or more CI jobs failed."
+            exit 1
+          fi
+          echo "All CI jobs passed."
