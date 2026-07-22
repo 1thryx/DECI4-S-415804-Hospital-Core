@@ -1,3 +1,6 @@
+# Must live at the repo root — Netlify reads its config from there, not from the
+# app subdirectory. `base` moves the build into frontend/, and `publish` is then
+# resolved relative to that base.
 [build]
   base    = "frontend"
   command = "npm run build"
