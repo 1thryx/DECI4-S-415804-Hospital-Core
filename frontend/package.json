@@ -1,6 +1,6 @@
 {
   "name": "hospital-core-frontend",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "description": "Hospital Core SPA — React 18 + React Query",

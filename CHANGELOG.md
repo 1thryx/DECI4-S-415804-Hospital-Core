@@ -2,6 +2,12 @@
 
 All notable changes are documented here. This file is generated automatically by semantic-release from Conventional Commit messages — do not edit it by hand.
 
+## [1.0.2](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.0.1...v1.0.2) (2026-07-22)
+
+### Bug Fixes
+
+* **api:** establish database connection per request on serverless ([88520fd](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/88520fd337922e20882f36e2898ac1d4fd5b1465))
+
 ## [1.0.1](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.0.0...v1.0.1) (2026-07-22)
 
 ### Bug Fixes
