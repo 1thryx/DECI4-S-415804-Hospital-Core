@@ -9,7 +9,9 @@ let mongod;
 
 beforeAll(async () => {
   mongod = await MongoMemoryServer.create();
-  await mongoose.connect(mongod.getUri(), { serverSelectionTimeoutMS: 30000 });
+  // Exposed so connection-lifecycle tests can redial the same server.
+  global.__MONGO_URI__ = mongod.getUri();
+  await mongoose.connect(global.__MONGO_URI__, { serverSelectionTimeoutMS: 30000 });
 });
 
 afterEach(async () => {

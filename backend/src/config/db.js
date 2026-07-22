@@ -38,7 +38,18 @@ let connectionPromise = null;
 let lastError = null;
 
 function ensureConnection(uri = process.env.MONGO_URI) {
-  if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose.connection);
+  const state = mongoose.connection.readyState; // 0 disconnected, 1 connected, 2 connecting, 3 disconnecting
+
+  if (state === 1) return Promise.resolve(mongoose.connection);
+
+  // Already dialling — join the attempt in flight rather than starting a second one.
+  if (state === 2 && connectionPromise) return connectionPromise;
+
+  // Disconnected or closing. Any cached promise is stale: it resolved against a
+  // socket that is now dead, so reusing it would return "success" while readyState
+  // stays 0 forever. Serverless makes this the normal case — the platform freezes
+  // the process between invocations and the connection dies underneath us.
+  if (state === 0 || state === 3) connectionPromise = null;
 
   if (!connectionPromise) {
     connectionPromise = connectDB(uri)
