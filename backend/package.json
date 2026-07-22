@@ -1,6 +1,6 @@
 {
   "name": "hospital-core-backend",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "description": "Hospital Core API — Node.js/Express MVC backend",
   "main": "server.js",
