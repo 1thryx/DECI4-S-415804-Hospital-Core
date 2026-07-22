@@ -25,4 +25,28 @@ async function disconnectDB() {
   await mongoose.connection.close();
 }
 
-module.exports = { connectDB, disconnectDB };
+/**
+ * Memoised connection for serverless runtimes.
+ *
+ * A Vercel function is frozen between invocations, so connecting once at module
+ * load is not enough: if that single attempt fails, nothing ever retries and every
+ * later request sees a dead connection. Caching the *promise* means concurrent
+ * requests share one dial-up, warm invocations reuse the open socket, and a
+ * failure clears the cache so the next request tries again.
+ */
+let connectionPromise = null;
+
+function ensureConnection(uri = process.env.MONGO_URI) {
+  if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose.connection);
+
+  if (!connectionPromise) {
+    connectionPromise = connectDB(uri).catch((err) => {
+      connectionPromise = null; // let the next request retry rather than fail forever
+      throw err;
+    });
+  }
+
+  return connectionPromise;
+}
+
+module.exports = { connectDB, disconnectDB, ensureConnection };

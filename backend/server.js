@@ -22,9 +22,12 @@ if (require.main === module) {
       console.error('[api] Failed to start:', err.message);
       process.exit(1);
     });
-} else if (process.env.VERCEL) {
-  // Serverless: connect lazily, reusing the connection across warm invocations.
-  connectDB().catch((err) => console.error('[api] Atlas connection failed:', err.message));
+} else {
+  // Imported rather than run directly — i.e. a serverless handler. Kick the
+  // connection off now so a cold start has a head start, but correctness does not
+  // depend on it: the /api middleware in src/app.js awaits ensureConnection() on
+  // every request and retries if this attempt failed.
+  connectDB().catch((err) => console.error('[api] initial connection attempt failed:', err.message));
 }
 
 module.exports = app;
