@@ -2,6 +2,12 @@
 
 All notable changes are documented here. This file is generated automatically by semantic-release from Conventional Commit messages — do not edit it by hand.
 
+## [1.0.1](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.0.0...v1.0.1) (2026-07-22)
+
+### Bug Fixes
+
+* **docs:** remove duplicated changelog header ([70d7c0a](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/70d7c0a459f4888cd6976a3f450c8f66642d4ddb))
+
 ## 1.0.0 (2026-07-22)
 
 ### Features
