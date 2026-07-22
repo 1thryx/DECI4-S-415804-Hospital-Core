@@ -35,18 +35,42 @@ async function disconnectDB() {
  * failure clears the cache so the next request tries again.
  */
 let connectionPromise = null;
+let lastError = null;
 
 function ensureConnection(uri = process.env.MONGO_URI) {
   if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose.connection);
 
   if (!connectionPromise) {
-    connectionPromise = connectDB(uri).catch((err) => {
-      connectionPromise = null; // let the next request retry rather than fail forever
-      throw err;
-    });
+    connectionPromise = connectDB(uri)
+      .then((conn) => {
+        lastError = null;
+        return conn;
+      })
+      .catch((err) => {
+        connectionPromise = null; // let the next request retry rather than fail forever
+        lastError = err.message;
+        throw err;
+      });
   }
 
   return connectionPromise;
 }
 
-module.exports = { connectDB, disconnectDB, ensureConnection };
+/**
+ * Surfaced by /api/health. On a serverless platform the process logs are not always
+ * the fastest way to see why a connection failed, so the running service reports its
+ * own diagnosis. The URI is masked — never echo credentials over HTTP.
+ */
+function connectionDiagnostics() {
+  const uri = process.env.MONGO_URI;
+  return {
+    mongoUriConfigured: Boolean(uri),
+    mongoUriScheme: uri ? uri.split('://')[0] : null,
+    mongoUriHost: uri ? (uri.split('@')[1] || '').split('/')[0] || null : null,
+    mongoUriHasDbName: uri ? /\/[A-Za-z0-9_-]+(\?|$)/.test(uri.split('@')[1] || '') : false,
+    readyState: mongoose.connection.readyState,
+    lastError
+  };
+}
+
+module.exports = { connectDB, disconnectDB, ensureConnection, connectionDiagnostics };
