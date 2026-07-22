@@ -8,13 +8,13 @@ All notable changes are documented here. This file is generated automatically by
 
 * initial Hospital Core platform ([df28e2a](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/df28e2abb627feb88dee6f239fdbcf3eabbf96a2))
 
-# Changelog
+---
 
-All notable changes are documented here. From v1.0.0 onward this file is generated
-automatically by [semantic-release](https://semantic-release.gitbook.io/) from
-Conventional Commit messages — **do not edit it by hand.**
+## Appendix — v1.0.0 initial scope
 
-## 1.0.0 (2026-07-22)
+The release entry above is generated from a single squashed commit. This appendix
+records what that commit actually contained, broken down by area. Releases from
+v1.0.1 onward are itemised automatically above and need no manual entry.
 
 ### Features
 
