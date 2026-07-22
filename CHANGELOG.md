@@ -2,6 +2,12 @@
 
 All notable changes are documented here. This file is generated automatically by semantic-release from Conventional Commit messages — do not edit it by hand.
 
+## [1.1.0](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.0.2...v1.1.0) (2026-07-22)
+
+### Features
+
+* **api:** report connection diagnostics from health endpoint ([dcd9d57](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/dcd9d57c36c4026ff546d1054f665e8cc1b74362))
+
 ## [1.0.2](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.0.1...v1.0.2) (2026-07-22)
 
 ### Bug Fixes
