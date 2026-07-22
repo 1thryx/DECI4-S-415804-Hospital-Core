@@ -1,5 +1,15 @@
 # Changelog
 
+All notable changes are documented here. This file is generated automatically by semantic-release from Conventional Commit messages — do not edit it by hand.
+
+## 1.0.0 (2026-07-22)
+
+### Features
+
+* initial Hospital Core platform ([df28e2a](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/df28e2abb627feb88dee6f239fdbcf3eabbf96a2))
+
+# Changelog
+
 All notable changes are documented here. From v1.0.0 onward this file is generated
 automatically by [semantic-release](https://semantic-release.gitbook.io/) from
 Conventional Commit messages — **do not edit it by hand.**

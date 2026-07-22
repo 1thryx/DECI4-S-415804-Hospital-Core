@@ -34,17 +34,30 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
-    "setupFilesAfterEnv": ["<rootDir>/src/__tests__/setupTests.js"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/__tests__/setupTests.js"
+    ],
     "moduleNameMapper": {
       "\\.(css|less|scss)$": "identity-obj-proxy"
     },
     "globals": {
       "__API_BASE__": "http://localhost:5000/api"
     },
-    "testMatch": ["<rootDir>/src/**/__tests__/**/*.test.jsx", "<rootDir>/src/**/*.test.jsx"],
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.test.jsx",
+      "<rootDir>/src/**/*.test.jsx"
+    ],
     "transform": {
-      "^.+\\.(js|jsx)$": ["babel-jest", { "configFile": "./babel.config.cjs" }]
+      "^.+\\.(js|jsx)$": [
+        "babel-jest",
+        {
+          "configFile": "./babel.config.cjs"
+        }
+      ]
     },
-    "collectCoverageFrom": ["src/**/*.{js,jsx}", "!src/main.jsx"]
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!src/main.jsx"
+    ]
   }
 }

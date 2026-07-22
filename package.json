@@ -23,7 +23,15 @@
     "k8s:load-test": "bash infra/scripts/load-test.sh",
     "k8s:down": "kubectl delete namespace hospital"
   },
-  "keywords": ["healthcare", "kubernetes", "docker", "react", "express", "mongodb", "microservices"],
+  "keywords": [
+    "healthcare",
+    "kubernetes",
+    "docker",
+    "react",
+    "express",
+    "mongodb",
+    "microservices"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0"
