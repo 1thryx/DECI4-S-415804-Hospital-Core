@@ -5,9 +5,6 @@ decoupled appointment-booking microservice, MongoDB, full Docker containerisatio
 local Kubernetes orchestration with autoscaling and TLS ingress, and a CI/CD pipeline
 that gates every merge on tests, Lighthouse scores, image builds, and manifest validation.
 
-> **Repository naming:** rename the repo to `<Student-ID>-Hospital-Core`
-> (e.g. `2021456-Hospital-Core`) before submitting.
-
 ---
 
 ## Table of contents
