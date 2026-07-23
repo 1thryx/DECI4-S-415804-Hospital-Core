@@ -2,6 +2,21 @@
 
 All notable changes are documented here. This file is generated automatically by semantic-release from Conventional Commit messages — do not edit it by hand.
 
+## [1.1.3](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.1.2...v1.1.3) (2026-07-23)
+
+### Bug Fixes
+
+* **infra:** stop Git Bash rewriting path-like arguments on Windows ([0580587](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/05805870e708a47a9f49214ba961ea70a7de0d80))
+* **k8s:** give the mongo probes time to actually run mongosh ([fe36ec1](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/fe36ec10487ae51b180a5db4b5e5fea227dc0089))
+* **k8s:** give the seed pod its database credentials ([5e810b3](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/5e810b3baa762f0b8187287d4ca65886c528e053))
+* **k8s:** point the nginx upstream at the cluster Service name ([83e65ca](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/83e65caefd69f03f17dd0d76b84d92a7d2021b2c))
+
+### Documentation
+
+* **k8s:** correct the hosts-file guidance for the docker driver on Windows ([bd0e810](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/bd0e81067ec5817fda5a432274b18b2377a08620))
+* record live deployment URLs and refresh the handoff ([2e0e83b](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/2e0e83ba1c7241cbb39ca0d82f284c79de2bd791))
+* record the verified cluster run and the Windows gotchas ([8565697](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/commit/85656979685e54cc140a492f34a8aa7d6929067f))
+
 ## [1.1.2](https://github.com/1thryx/DECI4-S-415804-Hospital-Core/compare/v1.1.1...v1.1.2) (2026-07-22)
 
 ### Bug Fixes
