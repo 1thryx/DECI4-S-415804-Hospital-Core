@@ -3,8 +3,9 @@
 **Location:** `c:\Users\Elsayad\Documents\project`
 **Date:** 2026-07-22, revised 2026-07-23
 **Repo:** https://github.com/1thryx/DECI4-S-415804-Hospital-Core
-**Status:** Code complete. Cloud deployment done (Netlify + Vercel + Atlas all live).
-Remaining work is local Kubernetes/Docker execution and the demo video.
+**Status:** 23 of 25 rubric subtasks verified. Cloud deployment live (Netlify + Vercel
++ Atlas), Docker Compose verified running, Minikube cluster verified running with
+observed HPA autoscaling and working TLS ingress. **Only the demo video remains.**
 
 Paste this file back into a new session to resume.
 
@@ -42,29 +43,70 @@ config parses, and all 11 YAML files (compose, 8 k8s manifests, 2 workflows) par
 | 2 | Netlify + Vercel + Atlas | ✅ deployed and live |
 | 2 | React Query caching | ✅ built |
 | 2 | Optimistic UI | ✅ 5 mutations |
-| 3 | Minikube manifests | ✅ 8 files, schema-valid |
-| 3 | ReplicaSets / autoscaling | ✅ HPA 2→10 backend, 2→8 appointments |
-| 3 | NGINX Ingress + TLS secret | ✅ `06-ingress.yaml` + `generate-certs.sh` |
+| 3 | Minikube manifests | ✅ **ran on a real cluster** — all 7 pods 1/1 |
+| 3 | ReplicaSets / autoscaling | ✅ **observed 2→4→5→6** under load |
+| 3 | NGINX Ingress + TLS secret | ✅ **verified** — TLS terminates, /api splits, 308 redirect |
 | 4 | Demo video | ❌ **you must record** |
 | 4 | README + diagrams | ✅ full README + 2 architecture docs, Mermaid diagrams |
 | 4 | PR merged with passing tests | ✅ PR #1 merged, CI green, semantic-release at v1.1.1 |
 
-Note the distinction the rubric draws: Task 2's compose rows and all three Task 3 rows
-are graded on *observed execution* ("launches all services", "pods auto-replicate
-successfully"), not on the manifests being correct. Those are the subtasks still open.
+Task 2's compose rows and all three Task 3 rows are graded on *observed execution*,
+not on the manifests being correct. All five have now been executed and observed
+(2026-07-23). The only outstanding subtasks are the two video rows.
 
 ---
 
 ## What is NOT done (needs you, not code)
 
-1. **Docker/Kubernetes never actually executed** — manifests and compose file are
-   schema-valid and internally consistent, but no Docker daemon or Minikube cluster
-   has ever run against them. Expect to debug on first `docker compose up`.
-   This is the largest remaining risk: 5 graded subtasks depend on it.
-2. **No demo video** — script is below.
-3. **Live URLs not yet written into the README** — the three blanks in README §11
-   ("Live URLs") are still underscores. The deployments exist; the documentation
-   of them does not, and the rubric grades on provided working URLs.
+1. **No demo video** — shot list is below. This is the only remaining rubric gap.
+2. **Hosts entry, if you want browser access to the cluster** — see the Windows
+   note below. Needs an elevated shell, which an agent session cannot obtain.
+
+---
+
+## Running the cluster on Windows — read before re-running
+
+Five bugs surfaced on the first real Minikube run that CI could never have caught
+(CI validates manifests against a schema on Linux; it never applies them, and MSYS
+does not exist there). All five are fixed, but the *reasons* are worth keeping:
+
+- **Git Bash rewrites path-like arguments.** MSYS turns `/CN=...` into
+  `C:/Program Files/Git/CN=...` and `/bin/sh` into `C:/Program Files/Git/usr/bin/sh`
+  before the native binary sees them. `generate-certs.sh` and `load-test.sh` both use
+  `MSYS2_ARG_CONV_EXCL` to exclude just the affected argument. Do **not** replace this
+  with a blanket `MSYS_NO_PATHCONV=1` — that also stops `-keyout`/`-out` being
+  translated, so openssl can no longer open its own output paths.
+
+- **`kubectl run` attaches no ConfigMap or Secret.** The seed pod needs `envFrom`
+  (see step 7 of `deploy-minikube.sh`) or it starts with no `MONGO_URI` and exits.
+  The old `|| true` hid this completely — a "successful" bring-up serving an empty
+  database.
+
+- **Probe `timeoutSeconds` defaults to 1s.** `mongosh` needs ~1.5–2.5s just to boot
+  Node before it can ping, so the Mongo probes always timed out and the pod never
+  went Ready — while mongod was serving fine. Backend then crash-looped against a
+  healthy database, which looks like an application bug and is not.
+
+- **nginx resolves upstreams once, at startup, and exits if resolution fails.**
+  `frontend/nginx.conf` ships only in the production image, which only the cluster
+  runs, so its upstream must be `backend-service` (the k8s Service), not `backend`
+  (the compose service). Compose is unaffected — it builds `Dockerfile.dev` and
+  proxies through Vite.
+
+- **The minikube IP is not routable from Windows under the docker driver.**
+  `192.168.49.2` is inside Docker's network; both :80 and :443 time out from the
+  host. A hosts entry pointing at it will never resolve. Use loopback instead:
+
+  ```bash
+  kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 443:443
+  # then, elevated: add "127.0.0.1  hospital.local" to
+  # C:\Windows\System32\drivers\etc\hosts
+  ```
+
+  Leave the port-forward running for as long as you need browser access. To check
+  the ingress *without* any host routing, run a curl pod inside the cluster against
+  the ingress controller's ClusterIP with `--resolve` — `verify-cluster.sh` prints
+  the exact command when it cannot reach the host.
 
 ---
 
