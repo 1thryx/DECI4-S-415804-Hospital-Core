@@ -4,6 +4,21 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
+# Fail on a missing prerequisite with a fixable message rather than a bare
+# "command not found" seven steps into a bring-up.
+for tool in minikube kubectl docker openssl; do
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "!! Required tool '$tool' is not on PATH."
+    echo "   minikube: https://minikube.sigs.k8s.io/docs/start/"
+    exit 1
+  }
+done
+
+docker info >/dev/null 2>&1 || {
+  echo "!! The Docker daemon is not reachable. Start Docker Desktop and retry."
+  exit 1
+}
+
 echo "==> [1/7] Starting Minikube"
 # Sized to leave headroom on a 4-core / 16GB host: taking every core starves the
 # Docker VM and the host, and the cluster gets slower rather than faster.
@@ -19,7 +34,10 @@ minikube addons enable ingress
 minikube addons enable metrics-server
 
 echo "==> [3/7] Pointing the shell at Minikube's Docker daemon"
-eval "$(minikube docker-env)"
+# --shell bash is explicit because minikube infers the shell from its parent
+# process, and under Git Bash on Windows that inference can yield PowerShell
+# syntax, which eval then chokes on.
+eval "$(minikube docker-env --shell bash)"
 
 echo "==> [4/7] Building images inside the cluster"
 docker build -t hospital-core/backend:latest "$ROOT/backend"
@@ -39,10 +57,34 @@ kubectl rollout status deployment/appointment-service -n hospital --timeout=180s
 kubectl rollout status deployment/frontend -n hospital --timeout=180s
 
 echo "==> [7/7] Seeding the database"
-kubectl run hospital-seed -n hospital \
+# The seed pod needs the same MONGO_URI the backend gets. Sourcing it via envFrom
+# keeps the Secret authoritative rather than duplicating the URI here, and keeps
+# the credential out of the process arguments.
+if kubectl run hospital-seed -n hospital \
   --image=hospital-core/backend:latest \
   --image-pull-policy=Never \
-  --restart=Never --rm -i --command -- node seed.js || true
+  --restart=Never --rm -i \
+  --overrides='{
+    "spec": {
+      "containers": [{
+        "name": "hospital-seed",
+        "image": "hospital-core/backend:latest",
+        "imagePullPolicy": "Never",
+        "command": ["node", "seed.js"],
+        "envFrom": [
+          { "configMapRef": { "name": "hospital-config" } },
+          { "secretRef": { "name": "hospital-db-secret" } }
+        ]
+      }]
+    }
+  }'; then
+  echo "==> Seed complete."
+else
+  # Loud on purpose. A silent seed failure leaves a running cluster serving an
+  # empty database — which only becomes obvious mid-demo.
+  printf '\n\033[1;31m  !!  SEEDING FAILED — the cluster is up but the database is EMPTY.\033[0m\n'
+  printf '\033[1;31m      Fix this before recording the demo.\033[0m\n\n'
+fi
 
 cat <<EOF
 
