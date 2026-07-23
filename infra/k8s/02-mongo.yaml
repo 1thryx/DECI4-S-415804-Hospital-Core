@@ -33,16 +33,23 @@ spec:
             limits:
               memory: '1Gi'
               cpu: '500m'
+          # timeoutSeconds must be set explicitly. It defaults to 1s, and mongosh is
+          # a Node.js program that needs ~1.5-2.5s just to boot its runtime before it
+          # can issue the ping — so with the default the probe kills itself every
+          # time and the pod never reports Ready, even though mongod is serving
+          # normally. Measured in-cluster: 1472ms / 1939ms / 2506ms.
           livenessProbe:
             exec:
               command: ['mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
             initialDelaySeconds: 30
             periodSeconds: 15
+            timeoutSeconds: 10
           readinessProbe:
             exec:
               command: ['mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 10
   volumeClaimTemplates:
     - metadata:
         name: mongo-storage
