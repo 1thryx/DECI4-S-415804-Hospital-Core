@@ -45,7 +45,29 @@ kubectl run curl-probe2 -n hospital --image=curlimages/curl:8.10.1 --restart=Nev
   curl -s http://appointment-service:5001/health
 
 banner "HTTPS through the ingress (self-signed cert, so -k)"
-curl -sk https://hospital.local/api/health || echo "Add '$(minikube ip) hospital.local' to your hosts file first."
+if ! curl -sk --max-time 10 https://hospital.local/api/health; then
+  cat <<EOF
+Could not reach https://hospital.local from this host.
+
+  Linux (any driver) / macOS: add "$(minikube ip)  hospital.local" to your hosts file.
+
+  Windows with the docker driver: $(minikube ip) is inside Docker's network and is
+  NOT routable from the host, so a hosts entry pointing at it will never work.
+  Forward the ingress to loopback instead, and point hospital.local at 127.0.0.1:
+
+    kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 443:443
+    # then, in an elevated shell, add to C:\\Windows\\System32\\drivers\\etc\\hosts:
+    #   127.0.0.1  hospital.local
+
+The ingress itself can be verified independently of host routing:
+
+  kubectl run ingress-probe -n hospital --image=curlimages/curl:8.10.1 \\
+    --restart=Never --rm -i --quiet -- \\
+    curl -sk --resolve hospital.local:443:\$(kubectl get svc -n ingress-nginx \\
+      ingress-nginx-controller -o jsonpath='{.spec.clusterIP}') \\
+      https://hospital.local/api/health
+EOF
+fi
 
 banner "Recent backend logs"
 kubectl logs -n hospital -l app=backend --tail=15
