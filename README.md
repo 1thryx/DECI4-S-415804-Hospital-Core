@@ -276,14 +276,14 @@ VITE_API_URL=/api
 VITE_PROXY_TARGET=http://localhost:5000
 
 # frontend/.env.production — Netlify
-VITE_API_URL=https://your-api.vercel.app/api
+VITE_API_URL=https://deci-4-s-415804-hospital-core.vercel.app/api
 ```
 
 ---
 
 ## 6. API documentation
 
-**Base URL:** `http://localhost:5000/api` (local) · `https://your-api.vercel.app/api` (production)
+**Base URL:** `http://localhost:5000/api` (local) · `https://deci-4-s-415804-hospital-core.vercel.app/api` (production)
 
 All responses share one envelope:
 
@@ -879,7 +879,7 @@ Set in **Project Settings → Environment Variables**:
 the serverless environment and connects lazily, reusing the connection across warm
 invocations. Leave `APPOINTMENT_SERVICE_URL` unset — bookings run in-process.
 
-Verify: `curl https://your-api.vercel.app/api/health`
+Verify: `curl https://deci-4-s-415804-hospital-core.vercel.app/api/health`
 
 ### 3. Frontend → Netlify
 
@@ -891,7 +891,7 @@ netlify deploy --prod
 
 Or connect the repo with base `frontend`, build `npm run build`, publish `dist`.
 
-Set **one** environment variable — `VITE_API_URL` = `https://your-api.vercel.app/api` —
+Set **one** environment variable — `VITE_API_URL` = `https://deci-4-s-415804-hospital-core.vercel.app/api` —
 then **trigger a fresh deploy**. Vite bakes this in at build time, so changing it
 without rebuilding has no effect.
 
@@ -899,11 +899,35 @@ Finally, add the Netlify URL to `CORS_ORIGINS` on Vercel and redeploy the API.
 
 ### Live URLs
 
-> Fill these in after deploying:
->
-> - **Frontend (Netlify):** `https://__________.netlify.app`
-> - **Backend API (Vercel):** `https://__________.vercel.app/api/health`
-> - **Database:** MongoDB Atlas — `cluster0.__________.mongodb.net`
+The platform is deployed and live:
+
+| Layer | URL |
+|---|---|
+| **Frontend (Netlify)** | https://deci4-s-415804-hospital-core.netlify.app |
+| **Backend API (Vercel)** | https://deci-4-s-415804-hospital-core.vercel.app |
+| **API health check** | https://deci-4-s-415804-hospital-core.vercel.app/api/health |
+| **Database** | MongoDB Atlas (M0) — reachable, see the health check below |
+
+Verify the whole chain from a terminal:
+
+```bash
+# 1. API is up and holding a live Atlas connection
+curl https://deci-4-s-415804-hospital-core.vercel.app/api/health
+# → {"success":true,"database":"connected","appointmentService":"embedded", ...}
+
+# 2. Seeded clinical data is served from Atlas
+curl https://deci-4-s-415804-hospital-core.vercel.app/api/patients
+
+# 3. CORS admits the Netlify origin
+curl -i -H "Origin: https://deci4-s-415804-hospital-core.netlify.app" \
+  https://deci-4-s-415804-hospital-core.vercel.app/api/stats/dashboard \
+  | grep -i access-control-allow-origin
+# → Access-Control-Allow-Origin: https://deci4-s-415804-hospital-core.netlify.app
+```
+
+`appointmentService: "embedded"` is expected on Vercel — `APPOINTMENT_SERVICE_URL` is
+deliberately unset, so booking runs in-process within the single serverless function
+(see §5). The microservice runs as its own deployable under Docker and Kubernetes.
 
 ---
 

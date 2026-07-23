@@ -1,8 +1,10 @@
 # Hospital Core — Build Status & Handoff
 
 **Location:** `c:\Users\Elsayad\Documents\project`
-**Date:** 2026-07-22
-**Status:** Code complete and verified. Remaining work is deployment + recording, which needs you.
+**Date:** 2026-07-22, revised 2026-07-23
+**Repo:** https://github.com/1thryx/DECI4-S-415804-Hospital-Core
+**Status:** Code complete. Cloud deployment done (Netlify + Vercel + Atlas all live).
+Remaining work is local Kubernetes/Docker execution and the demo video.
 
 Paste this file back into a new session to resume.
 
@@ -37,7 +39,7 @@ config parses, and all 11 YAML files (compose, 8 k8s manifests, 2 workflows) par
 | 2 | `docker-compose.yml` | ✅ 4 services + seed profile |
 | 2 | Hot reload via volumes | ✅ bind mounts + polling |
 | 2 | VPC blueprint | ✅ `infra/docs/vpc-blueprint.md` |
-| 2 | Netlify + Vercel + Atlas | ⚠️ **configs ready, not deployed — needs you** |
+| 2 | Netlify + Vercel + Atlas | ✅ deployed and live |
 | 2 | React Query caching | ✅ built |
 | 2 | Optimistic UI | ✅ 5 mutations |
 | 3 | Minikube manifests | ✅ 8 files, schema-valid |
@@ -45,80 +47,62 @@ config parses, and all 11 YAML files (compose, 8 k8s manifests, 2 workflows) par
 | 3 | NGINX Ingress + TLS secret | ✅ `06-ingress.yaml` + `generate-certs.sh` |
 | 4 | Demo video | ❌ **you must record** |
 | 4 | README + diagrams | ✅ full README + 2 architecture docs, Mermaid diagrams |
-| 4 | PR merged with passing tests | ❌ **needs git init + GitHub** |
+| 4 | PR merged with passing tests | ✅ PR #1 merged, CI green, semantic-release at v1.1.1 |
+
+Note the distinction the rubric draws: Task 2's compose rows and all three Task 3 rows
+are graded on *observed execution* ("launches all services", "pods auto-replicate
+successfully"), not on the manifests being correct. Those are the subtasks still open.
 
 ---
 
 ## What is NOT done (needs you, not code)
 
-These could not be completed from this machine:
-
-1. **Not a git repo yet** — `git init` was never run. No commits, no GitHub remote, no PR.
-2. **Docker/Kubernetes never actually executed** — manifests and compose file are
+1. **Docker/Kubernetes never actually executed** — manifests and compose file are
    schema-valid and internally consistent, but no Docker daemon or Minikube cluster
-   was run against them. Expect to debug on first `docker compose up`.
-3. **No live deployments** — Netlify, Vercel, and Atlas configs are written but nothing
-   is deployed. The README has placeholder URLs to fill in.
-4. **No demo video** — script is below.
-5. **Repo not renamed** — must be `<Student-ID>-Hospital-Core`.
+   has ever run against them. Expect to debug on first `docker compose up`.
+   This is the largest remaining risk: 5 graded subtasks depend on it.
+2. **No demo video** — script is below.
+3. **Live URLs not yet written into the README** — the three blanks in README §11
+   ("Live URLs") are still underscores. The deployments exist; the documentation
+   of them does not, and the rubric grades on provided working URLs.
 
 ---
 
 ## Next steps, in order
 
-### Step 1 — Git + GitHub (required for Task 4)
+Steps 1 (git/GitHub) and 3 (cloud deploy) from the original plan are **done**.
+What follows is what is left.
+
+### Step 1 — Fill the live URLs into README §11
+
+The three blanks under "Live URLs". Do it on a branch so it produces a second
+green-CI PR, which is more evidence for the Task 4 merge criterion.
+
+### Step 2 — Minikube (Task 3 — 3 subtasks)
+
+Tooling state as of 2026-07-23: **minikube v1.38.1 installed** via winget,
+`kubectl` v1.36.1 present, Docker Desktop installed but was not running.
 
 ```bash
-cd c:/Users/Elsayad/Documents/project
-git init
-git add .
-git commit -m "feat: initial Hospital Core platform"
-
-# Create the repo named <Student-ID>-Hospital-Core on GitHub, then:
-git remote add origin https://github.com/<you>/<Student-ID>-Hospital-Core.git
-git branch -M main
-git push -u origin main
+npm run k8s:deploy       # builds images, applies manifests, seeds
+# Add "$(minikube ip) hospital.local" to C:\Windows\System32\drivers\etc\hosts (as Admin)
+npm run k8s:verify       # this is the output to record
+npm run k8s:load-test    # watch the HPA scale in another terminal
 ```
 
-Then, for the "PR merged with passing tests" criterion:
+Watch for: the HPA reports `<unknown>/60%` until metrics-server has scraped
+(~60s). Don't start recording before it shows a real percentage.
 
-```bash
-git checkout -b feature/final-submission
-# make a small change, e.g. fill in the live URLs in README.md
-git commit -am "docs: add live deployment URLs"
-git push -u origin feature/final-submission
-# Open a PR on GitHub, wait for the CI checks to go green, then Merge.
-# Screenshot the green checks + the merged PR.
-```
-
-### Step 2 — Verify Docker locally
+### Step 3 — Docker Compose (Task 2 — 2 subtasks)
 
 ```bash
 docker compose up --build
 docker compose run --rm seed
 # Open http://localhost:5173 — register a patient, book an appointment
+# Then edit a source file on the host and show the change appear live (hot-reload subtask)
 ```
 
-### Step 3 — Deploy (Task 2)
-
-Full instructions are in README §11. Order matters:
-1. **Atlas** first — create M0 cluster, get the SRV string, seed it
-2. **Vercel** second — `cd backend && vercel --prod`, set `MONGO_URI`
-3. **Netlify** third — set `VITE_API_URL` to the Vercel URL, then deploy
-4. Add the Netlify URL to `CORS_ORIGINS` on Vercel, redeploy
-
-Then fill the live URLs into README §11.
-
-### Step 4 — Minikube (Task 3)
-
-```bash
-npm run k8s:deploy       # builds images, applies manifests, seeds
-# Add "$(minikube ip) hospital.local" to your hosts file
-npm run k8s:verify       # this is the output to record
-npm run k8s:load-test    # watch the HPA scale in another terminal
-```
-
-### Step 5 — Record the demo video (Task 4)
+### Step 4 — Record the demo video (Task 4 — 2 subtasks)
 
 Suggested 8–10 minute structure:
 
@@ -165,6 +149,13 @@ Suggested 8–10 minute structure:
 
 - **Patients are soft-deleted** (`status: 'inactive'`); clinical records are never
   destroyed by an API call.
+
+- **The k8s seed step uses `kubectl run --overrides`, not plain `--env`.** `kubectl run`
+  attaches no ConfigMap or Secret by default, so the original `node seed.js` pod started
+  with no `MONGO_URI` and died — silently, because the call ended in `|| true`. The
+  override injects `envFrom` the same way `03-backend.yaml` does, so the Secret stays the
+  single source of truth and the URI never lands in process arguments. Don't simplify it
+  back to `--env=MONGO_URI=...`; that re-duplicates the credential.
 
 ---
 
