@@ -91,11 +91,22 @@ cat <<EOF
 =========================================================================
  Deployment complete.
 
- Add this line to your hosts file (once):
-   $(minikube ip)  hospital.local
+ Reaching the cluster from your browser — this differs by platform:
 
-   Linux/macOS : sudo nano /etc/hosts
-   Windows     : C:\\Windows\\System32\\drivers\\etc\\hosts (as Administrator)
+ Linux / macOS
+   Add to /etc/hosts (sudo):   $(minikube ip)  hospital.local
+
+ Windows with the docker driver
+   $(minikube ip) lives inside Docker's network and is NOT routable from the
+   host, so a hosts entry pointing at it will never resolve. Forward the
+   ingress to loopback and point the hostname at 127.0.0.1 instead:
+
+     kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 443:443
+
+   Then add to C:\\Windows\\System32\\drivers\\etc\\hosts (as Administrator):
+     127.0.0.1  hospital.local
+
+   Leave the port-forward running for as long as you need browser access.
 
  Then open:  https://hospital.local
  (Your browser will warn about the self-signed cert — that is expected.)
